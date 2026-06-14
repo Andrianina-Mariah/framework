@@ -1,0 +1,11 @@
+Split 0:
+But: créer un framework équivalent à spring mvc
+j'ai besoin de 2 espaces de travail  différent: le framework qui va sortir le .jar et le test
+on a donc besoin que de FrontControllerServlet avec 2 fonctions qui sont les suivantes:
+doGet -> ProcessRequest
+doPost -> PrintWriter [Out.print(Url)]
+du coup par exemple le framework crée servlet
+et le test prend le jar (class path) c'est l'application test qu'on va déployer dans tomcat après'
+package
+
+Par contre les codes du test ne se trouve pas dans le même projet que le framework
