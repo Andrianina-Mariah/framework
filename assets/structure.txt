@@ -1,0 +1,46 @@
+PROJECT STRUCTURE
+
+new-project/
+├── framework/
+│   ├── src/
+│   │   └── main/
+│   │       └── java/
+│   │           ├── com/
+│   │           │   ├── framework/
+│   │           │   │   ├── annotation/
+│   │           │   │   │   └── Controller.java
+│   │           │   │   ├── util/
+│   │           │   │   │   └── ClasseUtilitaire.java
+│   │           │   │   └── servlet/
+│   │           │   │       └── FrontControllerServlet.java
+│   │           │   └── example/ (existing)
+│   │           │       └── framework/
+│   │           │           └── FrontControllerServlet.java (existing)
+│   │           └── com/
+│   │               └── example/
+│   │                   └── framework/
+│   │                       └── FrontControllerServlet.java (existing)
+│   └── pom.xml
+├── testapp/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/
+│   │   │   │   └── com/
+│   │   │   │       └── app/
+│   │   │   │           └── controller/
+│   │   │   │               ├── HomeController.java
+│   │   │   │               └── UserController.java
+│   │   │   └── webapp/
+│   │   │       ├── index.jsp (existing)
+│   │   │       └── WEB-INF/
+│   │   │           └── web.xml
+│   │   └── testapp/
+│   │       └── ... (existing)
+│   └── pom.xml
+├── deployFramework.sh
+├── deployTestApplication.sh
+├── README.md
+├── assets/
+│   └── structure.txt
+└── brouillon/
+    └── comprehension.md

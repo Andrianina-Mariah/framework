@@ -1,66 +1,71 @@
-# Spring MVC-like Framework and Test Web Application
+# Web Dynamique Framework
 
-This repository contains two separate Maven projects:
+This project demonstrates a custom MVC framework using Java Servlets and annotations.
 
-1. **framework** - A minimal framework equivalent to Spring MVC that produces a JAR containing `FrontControllerServlet`.
-2. **test-app** - A simple web application (WAR) that depends on the framework JAR and deploys the servlet in Tomcat.
+## Project Structure
 
-## Structure
+- `framework/` - Contains the custom framework code (JAR packaging)
+  - `src/main/java/com/framework/annotation/` - Custom `@Controller` annotation
+  - `src/main/java/com/framework/util/` - Utility class for scanning controllers (`ClasseUtilitaire`)
+  - `src/main/java/com/framework/servlet/` - Front controller servlet (`FrontControllerServlet`)
+  - `pom.xml` - Maven configuration for the framework
 
-```
-framework/
-├── framework/                 # Framework project (produces spring-mvc-framework.jar)
-│   ├── pom.xml
-│   └── src/main/java/com/example/framework/FrontControllerServlet.java
-└── test-app/                  # Test web application (produces test-webapp.war)
-    ├── pom.xml
-    └── src/main/webapp/
-        ├── WEB-INF/web.xml
-        └── index.jsp
-```
+- `testapp/` - Contains a test web application that uses the framework (WAR packaging)
+  - `src/main/java/com/app/controller/` - Sample controller classes annotated with `@Controller`
+  - `src/main/webapp/WEB-INF/` - Web application descriptor (`web.xml`)
+  - `pom.xml` - Maven configuration for the test application
 
-## Framework (`FrontControllerServlet`)
+- `deployFramework.sh` - Script to build the framework JAR and copy to Tomcat webapps
+- `deployTestApplication.sh` - Script to build the test application WAR and copy to Tomcat webapps
 
-- **doGet** → delegates to `processRequest` (default implementation returns a simple HTML page).
-- **doPost** → writes the request URL to the response as plain text.
+## Build Steps
 
-You can extend `FrontControllerServlet` and override `processRequest` to add custom logic (e.g., routing to controllers).
+### Prerequisites
+- Java JDK 17 or higher
+- Maven 3.6 or higher
+- Tomcat 10+ (for Jakarta Servlet 6.0)
 
-## Building
-
-### 1. Build the framework JAR
-
+### Building the Framework
 ```bash
 cd framework
-mvn clean install
-```
-
-This will install `spring-mvc-framework-1.0-SNAPSHOT.jar` into your local Maven repository.
-
-### 2. Build the test webapp WAR
-
-```bash
-cd test-app
 mvn clean package
 ```
+This produces `framework/target/framework-1.0-SNAPSHOT.jar`.
 
-The resulting `test-webapp.war` will be placed in `target/`.
-
-## Deployment
-
-Deploy the generated `test-webapp.war` to an Apache Tomcat server (version 9.0+ recommended, as it implements Servlet 4.0).
-
-After deployment, access the application at:
-
+### Building the Test Application
+```bash
+cd testapp
+mvn clean package
 ```
-http://localhost:8080/test-webapp/
-```
+This produces `testapp/target/testapp.war`. The framework JAR is included in the WAR's `WEB-INF/lib` directory.
 
-- Click the link to test a GET request.
-- Use the form to test a POST request.
+## Deployment on Tomcat
+
+### Using Deployment Scripts
+1. Set the Tomcat directory in the deployment scripts (default: `/opt/tomcat`)
+2. Run the deployment scripts:
+   ```bash
+   ./deployFramework.sh   # Copies framework JAR to $TOMCAT/webapps/
+   ./deployTestApplication.sh   # Copies testapp WAR to $TOMCAT/webapps/
+   ```
+
+### Manual Deployment
+1. Copy `framework/target/framework-1.0-SNAPSHOT.jar` to `$TOMCAT/webapps/` (optional, for reference)
+2. Copy `testapp/target/testapp.war` to `$TOMCAT/webapps/`
+3. Start or restart Tomcat
+4. Access the application at `http://localhost:8080/testapp/`
+
+## How It Works
+- The `FrontControllerServlet` is mapped to all requests (`/*`)
+- On initialization, it scans the `com.app.controller` package for classes annotated with `@Controller`
+- It stores the annotation values (e.g., "home", "user")
+- For each request, it prints the requested URI and the list of controller names
+
+## Sample Controllers
+- `HomeController` annotated with `@Controller("home")`
+- `UserController` annotated with `@Controller("user")`
 
 ## Notes
-
-- The framework and test app are in separate workspaces as requested.
-- The test app does **not** contain the framework source; it only depends on the compiled JAR.
-- Ensure your Tomcat is configured to use JDK 11 or higher (matching the Maven compiler settings).
+- The framework uses the Reflections library for scanning annotations
+- The test application depends on the framework module
+- Deployment scripts assume Tomcat is installed at `/opt/tomcat`; modify the scripts if needed

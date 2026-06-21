@@ -7,5 +7,18 @@ doPost -> PrintWriter [Out.print(Url)]
 du coup par exemple le framework crée servlet
 et le test prend le jar (class path) c'est l'application test qu'on va déployer dans tomcat après'
 package
-
 Par contre les codes du test ne se trouve pas dans le même projet que le framework
+
+Create project root directory for the new implementation (e.g., new-project/)
+Set up the framework module: src/main/java/com/framework/annotation/Controller.java (custom @Controller annotation)
+Implement utility class for scanning annotated controllers (ClasseUtilitaire) using Reflections library
+Implement FrontControllerServlet extending HttpServlet that init() scans controllers and stores their names
+Add doGet/doPost delegating to processRequest which prints requested URI and list of controller names
+Create Maven pom.xml for framework (jar packaging) with dependencies: jakarta.servlet-api (provided), org.reflections
+Set up test application module: src/main/webapp/WEB-INF/web.xml mapping FrontControllerServlet to /*
+Create sample controller classes annotated with @Controller (different values) in src/main/java/com/app/controller/
+Create Maven pom.xml for test app (war packaging) depending on the framework module
+Add deployment scripts (deployFramework.sh, deployTestApplication.sh) that build JAR/WAR and copy to Tomcat webapps
+Write a brief README.md explaining the project structure, build steps (mvn clean install/package), and deployment on Tomcat
+Optional: Add assets/ and brouillon/ folders with structure.txt and comprehension.md for documentation
+Verify the implementation by building both modules and deploying the WAR to a local Tomcat instance
