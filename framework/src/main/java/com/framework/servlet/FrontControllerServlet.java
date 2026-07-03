@@ -82,9 +82,9 @@ public class FrontControllerServlet extends HttpServlet {
                 // Get the declaring class of the method
                 java.lang.Class<?> controllerClass = method.getDeclaringClass();
                 Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
-                // Object result = method.invoke(controllerInstance);
-                // out.println("<h3>Controller->Method: " + controllerName + "->" + method.getName() + "</h3>");
-                // out.println("<p>Result: " + result + "</p>");
+                Object result = method.invoke(controllerInstance);
+                out.println("<h3>Controller->Method: " + controllerName + "->" + method.getName() + "</h3>");
+                out.println("<p>Result: " + result + "</p>");
             } catch (Exception e) {
                 out.println("<p>Error invoking controller method: " + e.getMessage() + "</p>");
                 e.printStackTrace(out);
