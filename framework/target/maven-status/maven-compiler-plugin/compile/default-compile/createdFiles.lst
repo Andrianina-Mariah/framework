@@ -1,3 +1,4 @@
+com/framework/annotation/UrlMapping$HttpMethod.class
 com/framework/servlet/FrontControllerServlet.class
 com/framework/annotation/UrlMapping.class
 com/framework/util/ClasseUtilitaire.class
