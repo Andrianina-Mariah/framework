@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Custom UrlMapping annotation to map a URL pattern to a controller method.
+ * Custom UrlMapping annotation to map a URL pattern and HTTP method to a controller method.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -16,4 +16,17 @@ public @interface UrlMapping {
      * @return the URL pattern
      */
     String value();
+
+    /**
+     * The HTTP method for this mapping.
+     * @return the HTTP method
+     */
+    HttpMethod method() default HttpMethod.GET;
+
+    /**
+     * Supported HTTP methods.
+     */
+    enum HttpMethod {
+        GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, TRACE
+    }
 }

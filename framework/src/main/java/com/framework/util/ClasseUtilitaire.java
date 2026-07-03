@@ -41,10 +41,11 @@ public class ClasseUtilitaire {
     /**
      * Scans the given base package for controllers and their URL-mapped methods.
      * Returns a map where the key is the controller name (from @Controller value),
-     * and the value is a map of URL pattern to method.
+     * and the value is a map of URL pattern + "#" + HTTP method to method.
      *
      * @param basePackage the base package to scan
-     * @return a map of controller name to map of URL pattern to method
+     * @return a map of controller name to map of URL pattern + method to method
+     * @throws IllegalStateException if there are conflicting URL/method mappings
      */
     public static Map<String, Map<String, Method>> getUrlMappingMap(String basePackage) {
         ConfigurationBuilder config = new ConfigurationBuilder()
@@ -68,7 +69,19 @@ public class ClasseUtilitaire {
                 UrlMapping urlAnn = method.getAnnotation(UrlMapping.class);
                 if (urlAnn != null) {
                     String urlPattern = urlAnn.value();
-                    methodMap.put(urlPattern, method);
+                    UrlMapping.HttpMethod httpMethod = urlAnn.method();
+                    String key = urlPattern + "#" + httpMethod;
+
+                    // Check for duplicate mapping
+                    if (methodMap.containsKey(key)) {
+                        throw new IllegalStateException(
+                                "Mapping dupliqué trouvé dans controller '" + controllerName +
+                                "': URL '" + urlPattern + "' avec la méthode '" + httpMethod +
+                                "' qui est déjà mapper à la méthode '" + methodMap.get(key).getName() +
+                                "'. Conflicting method: '" + method.getName() + "'");
+                    }
+
+                    methodMap.put(key, method);
                 }
             }
             if (!methodMap.isEmpty()) {

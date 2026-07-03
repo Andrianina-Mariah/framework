@@ -1,6 +1,8 @@
 package com.framework.servlet;
 
-import com.framework.util.ClasseUtilitaire;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Map;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -8,10 +10,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Method;
-import java.util.Map;
+import com.framework.util.ClasseUtilitaire;
 
 /**
  * Front controller servlet that scans for controllers and handles requests based on URL mappings.
@@ -64,11 +63,12 @@ public class FrontControllerServlet extends HttpServlet {
         java.lang.reflect.Method method = null;
         String controllerName = null;
         boolean found = false;
+        String methodKey = pathInfo + "#" + req.getMethod();
         for (Map.Entry<String, Map<String, java.lang.reflect.Method>> entry : urlMappingMap.entrySet()) {
             String ctrlName = entry.getKey();
             Map<String, java.lang.reflect.Method> methodMap = entry.getValue();
-            if (methodMap.containsKey(pathInfo)) {
-                method = methodMap.get(pathInfo);
+            if (methodMap.containsKey(methodKey)) {
+                method = methodMap.get(methodKey);
                 controllerName = ctrlName;
                 found = true;
                 break;
@@ -82,21 +82,26 @@ public class FrontControllerServlet extends HttpServlet {
                 // Get the declaring class of the method
                 java.lang.Class<?> controllerClass = method.getDeclaringClass();
                 Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
-                Object result = method.invoke(controllerInstance);
-                out.println("<h3>Controller->Method: " + controllerName + "->" + method.getName() + "</h3>");
-                out.println("<p>Result: " + result + "</p>");
+                // Object result = method.invoke(controllerInstance);
+                // out.println("<h3>Controller->Method: " + controllerName + "->" + method.getName() + "</h3>");
+                // out.println("<p>Result: " + result + "</p>");
             } catch (Exception e) {
                 out.println("<p>Error invoking controller method: " + e.getMessage() + "</p>");
                 e.printStackTrace(out);
             }
         } else {
-            out.println("<h3>No mapping found for URL: " + pathInfo + "</p>");
+            out.println("<h3>No mapping found for URL: " + pathInfo + " with method " + req.getMethod() + "</p>");
             out.println("<p>Available mappings:</p>");
             out.println("<ul>");
             for (Map.Entry<String, Map<String, java.lang.reflect.Method>> entry : urlMappingMap.entrySet()) {
                 String ctrl = entry.getKey();
                 for (Map.Entry<String, java.lang.reflect.Method> mEntry : entry.getValue().entrySet()) {
-                    out.println("<li>" + ctrl + " -> " + mEntry.getKey() + " (method: " + mEntry.getValue().getName() + ")</li>");
+                    String key = mEntry.getKey();
+                    // key format: urlPattern#HTTP_METHOD
+                    String[] parts = key.split("#", 2);
+                    String urlPart = parts[0];
+                    String methodPart = parts.length > 1 ? parts[1] : "";
+                    out.println("<li>" + ctrl + " -> " + urlPart + " (method: " + methodPart + ") (method: " + mEntry.getValue().getName() + ")</li>");
                 }
             }
             out.println("</ul>");

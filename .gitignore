@@ -1,0 +1,10 @@
+# Maven build files
+target/
+
+# IDE files (optionnel mais recommandé)
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
