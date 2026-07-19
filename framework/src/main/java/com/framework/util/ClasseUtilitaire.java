@@ -78,7 +78,7 @@ public class ClasseUtilitaire {
                                 "Mapping dupliqué trouvé dans controller '" + controllerName +
                                 "': URL '" + urlPattern + "' avec la méthode '" + httpMethod +
                                 "' qui est déjà mapper à la méthode '" + methodMap.get(key).getName() +
-                                "'. Conflicting method: '" + method.getName() + "'");
+                                "'. Conflit de méthode: '" + method.getName() + "'");
                     }
 
                     methodMap.put(key, method);
@@ -90,5 +90,21 @@ public class ClasseUtilitaire {
         }
 
         return controllerMap;
+    }
+
+    /**
+     * Vérifie si la méthode donnée a un paramètre de type spécifié.
+     *
+     * @param methode la méthode à tester
+     * @param param   le type de paramètre recherché
+     * @return vrai si la méthode a au moins un paramètre de type param
+     */
+    public static boolean haveParameter(java.lang.reflect.Method methode, Class<?> param) {
+        for (Class<?> p : methode.getParameterTypes()) {
+            if (param.isAssignableFrom(p)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
