@@ -2,6 +2,7 @@ package com.framework.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Parameter;
 import java.util.Map;
 
 import javax.servlet.RequestDispatcher;
@@ -15,6 +16,7 @@ import com.framework.annotation.APIREST;
 import com.framework.model.ModelAndView;
 import com.framework.util.ClasseUtilitaire;
 import com.framework.util.JsonUtil;
+import com.framework.util.Util;
 
 /**
  * Front controller servlet that scans for controllers and handles requests based on URL mappings.
@@ -98,7 +100,6 @@ public class FrontControllerServlet extends HttpServlet {
                 // Récupération du contexte Spring
                 Object result;
 
-                // Récupérer les paramètres de la requête
                 Map<String, String[]> requestParams = req.getParameterMap();
 
                 if (requestParams == null || requestParams.isEmpty()) {
@@ -106,34 +107,21 @@ public class FrontControllerServlet extends HttpServlet {
                     result = method.invoke(controllerInstance);
                 } else {
                     // Des paramètres existent → Binding
-                    java.lang.reflect.Parameter[] methodParams = method.getParameters();
+                    Parameter[] methodParams = method.getParameters();
                     Object[] args = new Object[methodParams.length];
 
                     for (int i = 0; i < methodParams.length; i++) {
-                        java.lang.reflect.Parameter param = methodParams[i];
-                        String paramName = param.getName();          // nécessite -parameters
+                        Parameter param = methodParams[i];
                         Class<?> paramType = param.getType();
+                        String paramName = param.getName(); // nécessite -parameters
 
-                        String value = req.getParameter(paramName);
-
-                        if (value == null) {
-                            args[i] = null;                          // ou valeur par défaut
+                        if (Util.isSimpleType(paramType)) {
+                            // ===== Type simple (String, int, Integer…) =====
+                            String value = req.getParameter(paramName);
+                            args[i] = Util.convertValue(value, paramType);
                         } else {
-                            // Conversion simple des types
-                            if (paramType == String.class) {
-                                args[i] = value;
-                            } else if (paramType == int.class || paramType == Integer.class) {
-                                args[i] = Integer.parseInt(value);
-                            } else if (paramType == long.class || paramType == Long.class) {
-                                args[i] = Long.parseLong(value);
-                            } else if (paramType == double.class || paramType == Double.class) {
-                                args[i] = Double.parseDouble(value);
-                            } else if (paramType == boolean.class || paramType == Boolean.class) {
-                                args[i] = Boolean.parseBoolean(value);
-                            } else {
-                                // Type non géré pour l'instant
-                                args[i] = value;
-                            }
+                            // ===== Objet (Personne, etc.) =====
+                            args[i] = Util.bindObject(paramType, req);
                         }
                     }
 

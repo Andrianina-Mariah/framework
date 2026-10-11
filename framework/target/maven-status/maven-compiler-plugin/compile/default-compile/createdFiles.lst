@@ -1,4 +1,5 @@
 com/framework/util/JsonUtil.class
+com/framework/util/Util.class
 com/framework/servlet/FrontControllerServlet.class
 com/framework/model/ModelAndView.class
 com/framework/annotation/APIREST.class
