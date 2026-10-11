@@ -6,7 +6,6 @@ import java.util.Map;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -99,27 +98,46 @@ public class FrontControllerServlet extends HttpServlet {
                 // Récupération du contexte Spring
                 Object result;
 
-                // Vérifier si la méthode attend un WebApplicationContext (Spring)
-                boolean needsSpring = false;
-                try {
-                    needsSpring = ClasseUtilitaire.haveParameter(method, Class.forName("org.springframework.web.context.WebApplicationContext"));
-                } catch (ClassNotFoundException e) {
-                    // Spring n'est pas dans le classpath → on ignore
-                    needsSpring = false;
-                }
+                // Récupérer les paramètres de la requête
+                Map<String, String[]> requestParams = req.getParameterMap();
 
-                if (needsSpring) {
-                    ServletContext servletContext = this.getServletConfig().getServletContext();
-                    Object springCtxObj = servletContext.getAttribute("springContext");
-                    
-                    if (springCtxObj == null) {
-                        throw new ServletException("Spring WebApplicationContext non disponible.");
-                    }
-                    
-                    result = method.invoke(controllerInstance, springCtxObj);
-                } else {
-                    // Invocation normale (sans Spring)
+                if (requestParams == null || requestParams.isEmpty()) {
+                    // Aucun paramètre → invocation simple
                     result = method.invoke(controllerInstance);
+                } else {
+                    // Des paramètres existent → Binding
+                    java.lang.reflect.Parameter[] methodParams = method.getParameters();
+                    Object[] args = new Object[methodParams.length];
+
+                    for (int i = 0; i < methodParams.length; i++) {
+                        java.lang.reflect.Parameter param = methodParams[i];
+                        String paramName = param.getName();          // nécessite -parameters
+                        Class<?> paramType = param.getType();
+
+                        String value = req.getParameter(paramName);
+
+                        if (value == null) {
+                            args[i] = null;                          // ou valeur par défaut
+                        } else {
+                            // Conversion simple des types
+                            if (paramType == String.class) {
+                                args[i] = value;
+                            } else if (paramType == int.class || paramType == Integer.class) {
+                                args[i] = Integer.parseInt(value);
+                            } else if (paramType == long.class || paramType == Long.class) {
+                                args[i] = Long.parseLong(value);
+                            } else if (paramType == double.class || paramType == Double.class) {
+                                args[i] = Double.parseDouble(value);
+                            } else if (paramType == boolean.class || paramType == Boolean.class) {
+                                args[i] = Boolean.parseBoolean(value);
+                            } else {
+                                // Type non géré pour l'instant
+                                args[i] = value;
+                            }
+                        }
+                    }
+
+                    result = method.invoke(controllerInstance, args);
                 }
                 // =====================================================
                 // SPRINT 6 – REST API
