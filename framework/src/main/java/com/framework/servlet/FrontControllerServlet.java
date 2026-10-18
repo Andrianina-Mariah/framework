@@ -17,7 +17,7 @@ import com.framework.model.ModelAndView;
 import com.framework.util.ClasseUtilitaire;
 import com.framework.util.JsonUtil;
 import com.framework.util.Util;
-
+import javax.servlet.http.Part;
 /**
  * Front controller servlet that scans for controllers and handles requests based on URL mappings.
  * Support ModelAndView (vues) + @APIREST (JSON)
@@ -115,19 +115,29 @@ public class FrontControllerServlet extends HttpServlet {
                         Class<?> paramType = param.getType();
                         String paramName = param.getName(); // nécessite -parameters
 
-                        if (Util.isSimpleType(paramType)) {
-                            // ===== Type simple (String, int, Integer…) =====
+                        if (paramType == Part.class) {
+                            // Fichier seul (Part)
+                            args[i] = req.getPart(paramName);
+
+                        } else if (paramType == byte[].class) {
+                            // Fichier seul (byte[])
+                            Part part = req.getPart(paramName);
+                            args[i] = Util.readPartBytes(part);
+
+                        } else if (Util.isSimpleType(paramType)) {
+                            // Type simple
                             String value = req.getParameter(paramName);
                             args[i] = Util.convertValue(value, paramType);
+
                         } else {
-                            // ===== Objet (Personne, etc.) =====
+                            // Objet (Emp, Voiture, etc.) → binding simple + fichiers
                             args[i] = Util.bindObject(paramType, req);
                         }
                     }
 
-                    result = method.invoke(controllerInstance, args);
+                    result = method.invoke(controllerInstance, args);  
                 }
-                // =====================================================
+              // =====================================================
                 // SPRINT 6 – REST API
                 // =====================================================
                 APIREST apiRest = method.getAnnotation(APIREST.class);
