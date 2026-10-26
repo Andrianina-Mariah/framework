@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Parameter;
 import java.util.Map;
+import java.util.HashMap;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletConfig;
@@ -11,13 +12,15 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 
 import com.framework.annotation.APIREST;
 import com.framework.model.ModelAndView;
+import com.framework.session.MaSession;
 import com.framework.util.ClasseUtilitaire;
 import com.framework.util.JsonUtil;
 import com.framework.util.Util;
-import javax.servlet.http.Part;
+
 /**
  * Front controller servlet that scans for controllers and handles requests based on URL mappings.
  * Support ModelAndView (vues) + @APIREST (JSON)
@@ -28,6 +31,7 @@ public class FrontControllerServlet extends HttpServlet {
     private static final String DEFAULT_CONTROLLER_PACKAGE = "com.app.controller";
 
     private Map<String, Map<String, java.lang.reflect.Method>> urlMappingMap;
+    private final Map<Class<?>, Object> controllerInstances = new HashMap<>();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -94,48 +98,47 @@ public class FrontControllerServlet extends HttpServlet {
 
         if (found && method != null) {
             try {
-                java.lang.Class<?> controllerClass = method.getDeclaringClass();
-                Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+                Class<?> controllerClass = method.getDeclaringClass();
 
-                // Récupération du contexte Spring
-                Object result;
+                // ===== 1 instance de controller (singleton) =====
+                Object controllerInstance = getControllerInstance(controllerClass);
 
-                Map<String, String[]> requestParams = req.getParameterMap();
+                // ===== Résolution des arguments =====
+                Parameter[] methodParams = method.getParameters();
+                Object[] args = new Object[methodParams.length];
+                MaSession maSession = null;
 
-                if (requestParams == null || requestParams.isEmpty()) {
-                    // Aucun paramètre → invocation simple
-                    result = method.invoke(controllerInstance);
-                } else {
-                    // Des paramètres existent → Binding
-                    Parameter[] methodParams = method.getParameters();
-                    Object[] args = new Object[methodParams.length];
+                for (int i = 0; i < methodParams.length; i++) {
+                    Parameter param = methodParams[i];
+                    Class<?> paramType = param.getType();
+                    String paramName = param.getName();
 
-                    for (int i = 0; i < methodParams.length; i++) {
-                        Parameter param = methodParams[i];
-                        Class<?> paramType = param.getType();
-                        String paramName = param.getName(); // nécessite -parameters
+                    if (paramType == MaSession.class) {
+                        maSession = MaSession.from(req.getSession(true));
+                        args[i] = maSession;
 
-                        if (paramType == Part.class) {
-                            // Fichier seul (Part)
-                            args[i] = req.getPart(paramName);
+                    } else if (paramType == Part.class) {
+                        args[i] = req.getPart(paramName);
 
-                        } else if (paramType == byte[].class) {
-                            // Fichier seul (byte[])
-                            Part part = req.getPart(paramName);
-                            args[i] = Util.readPartBytes(part);
+                    } else if (paramType == byte[].class) {
+                        Part part = req.getPart(paramName);
+                        args[i] = Util.readPartBytes(part);
 
-                        } else if (Util.isSimpleType(paramType)) {
-                            // Type simple
-                            String value = req.getParameter(paramName);
-                            args[i] = Util.convertValue(value, paramType);
+                    } else if (Util.isSimpleType(paramType)) {
+                        String value = req.getParameter(paramName);
+                        args[i] = Util.convertValue(value, paramType);
 
-                        } else {
-                            // Objet (Emp, Voiture, etc.) → binding simple + fichiers
-                            args[i] = Util.bindObject(paramType, req);
-                        }
+                    } else {
+                        args[i] = Util.bindObject(paramType, req);
                     }
+                }
 
-                    result = method.invoke(controllerInstance, args);  
+                // ===== Invocation =====
+                Object result = method.invoke(controllerInstance, args);
+
+                // ===== Flush session =====
+                if (maSession != null) {
+                    maSession.flushTo(req.getSession(false));
                 }
               // =====================================================
                 // SPRINT 6 – REST API
@@ -214,5 +217,18 @@ public class FrontControllerServlet extends HttpServlet {
         String path = requestURI.substring(contextPath.length());
         if (path.startsWith("/")) path = path.substring(1);
         return path;
+    }
+
+    //méthode pour récupèrer l'instance unique
+    private Object getControllerInstance(Class<?> controllerClass) throws Exception {
+        Object instance = controllerInstances.get(controllerClass);
+        if (instance == null) {
+            instance = controllerClass.getDeclaredConstructor().newInstance();
+            controllerInstances.put(controllerClass, instance);
+            System.out.println("Nouvelle instance créée pour : " + controllerClass.getSimpleName());
+        } else {
+            System.out.println("Réutilisation de l'instance : " + controllerClass.getSimpleName());
+        }
+        return instance;
     }
 }
