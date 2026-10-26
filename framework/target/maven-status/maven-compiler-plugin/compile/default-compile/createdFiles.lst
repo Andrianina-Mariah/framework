@@ -1,3 +1,4 @@
+com/framework/session/MaSession.class
 com/framework/util/JsonUtil.class
 com/framework/util/Util.class
 com/framework/servlet/FrontControllerServlet.class
