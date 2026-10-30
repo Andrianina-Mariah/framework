@@ -2,9 +2,10 @@ package com.framework.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletConfig;
@@ -15,10 +16,12 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 
 import com.framework.annotation.APIREST;
+import com.framework.annotation.Auth;
 import com.framework.model.ModelAndView;
 import com.framework.session.MaSession;
 import com.framework.util.ClasseUtilitaire;
 import com.framework.util.JsonUtil;
+import com.framework.util.ResponseHelper;
 import com.framework.util.Util;
 
 /**
@@ -98,6 +101,10 @@ public class FrontControllerServlet extends HttpServlet {
 
         if (found && method != null) {
             try {
+                // ===== Sprint 10 : Auth =====
+                if (!checkAuthorization(method, req, resp)) {
+                    return; // 401 ou 403 déjà envoyé
+                }
                 Class<?> controllerClass = method.getDeclaringClass();
 
                 // ===== 1 instance de controller (singleton) =====
@@ -230,5 +237,41 @@ public class FrontControllerServlet extends HttpServlet {
             System.out.println("Réutilisation de l'instance : " + controllerClass.getSimpleName());
         }
         return instance;
+    }
+
+    private boolean checkAuthorization(Method method, HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+
+        // @Auth sur méthode, sinon sur classe
+        Auth auth = method.getAnnotation(Auth.class);
+        if (auth == null) {
+            auth = method.getDeclaringClass().getAnnotation(Auth.class);
+        }
+
+        // Pas de @Auth → accès libre
+        if (auth == null) {
+            return true;
+        }
+
+        boolean isApi = ResponseHelper.isApiRequest(method);
+
+        // Session ?
+        javax.servlet.http.HttpSession httpSession = req.getSession(false);
+        if (httpSession == null) {
+            ResponseHelper.handleUnauthorized(req, resp, isApi);
+            return false;
+        }
+
+        // User connecté ?
+        String userAttrName = (String) getServletContext().getAttribute("userSessionAttribute");
+        if (userAttrName == null) userAttrName = "user";
+
+        Object user = httpSession.getAttribute(userAttrName);
+        if (user == null) {
+            ResponseHelper.handleUnauthorized(req, resp, isApi);
+            return false;
+        }
+
+        return true;
     }
 }
