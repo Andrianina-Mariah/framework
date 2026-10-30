@@ -2,10 +2,10 @@ package com.framework.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.HashMap;
+import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.HashMap;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletConfig;
@@ -16,13 +16,13 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 
 import com.framework.annotation.APIREST;
-import com.framework.annotation.Auth;
 import com.framework.model.ModelAndView;
 import com.framework.session.MaSession;
 import com.framework.util.ClasseUtilitaire;
 import com.framework.util.JsonUtil;
-import com.framework.util.ResponseHelper;
 import com.framework.util.Util;
+import com.framework.annotation.Auth;
+import com.framework.util.ResponseHelper;
 
 /**
  * Front controller servlet that scans for controllers and handles requests based on URL mappings.
@@ -242,33 +242,60 @@ public class FrontControllerServlet extends HttpServlet {
     private boolean checkAuthorization(Method method, HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
 
-        // @Auth sur méthode, sinon sur classe
+        // 1. Récupérer @Auth : méthode prioritaire, sinon classe
         Auth auth = method.getAnnotation(Auth.class);
         if (auth == null) {
             auth = method.getDeclaringClass().getAnnotation(Auth.class);
         }
 
-        // Pas de @Auth → accès libre
+        // Pas d'annotation @Auth → accès libre
         if (auth == null) {
             return true;
         }
 
         boolean isApi = ResponseHelper.isApiRequest(method);
 
-        // Session ?
+        // 2. Récupérer la session
         javax.servlet.http.HttpSession httpSession = req.getSession(false);
         if (httpSession == null) {
             ResponseHelper.handleUnauthorized(req, resp, isApi);
             return false;
         }
 
-        // User connecté ?
+        // 3. Vérifier présence user / rôle
         String userAttrName = (String) getServletContext().getAttribute("userSessionAttribute");
+        String roleAttrName = (String) getServletContext().getAttribute("roleSessionAttribute");
+
         if (userAttrName == null) userAttrName = "user";
+        if (roleAttrName == null) roleAttrName = "role";
 
         Object user = httpSession.getAttribute(userAttrName);
+        Object roleObj = httpSession.getAttribute(roleAttrName);
+
+        // Pas authentifié
         if (user == null) {
             ResponseHelper.handleUnauthorized(req, resp, isApi);
+            return false;
+        }
+
+        String requiredRole = auth.role();
+
+        // role vide → authentification seule suffit
+        if (requiredRole == null || requiredRole.trim().isEmpty()) {
+            return true;
+        }
+
+        // Vérifier le rôle
+        boolean hasRole = false;
+
+        if (roleObj instanceof String) {
+            hasRole = requiredRole.equals(roleObj);
+        } else if (roleObj instanceof java.util.Collection) {
+            hasRole = ((java.util.Collection<?>) roleObj).contains(requiredRole);
+        }
+
+        if (!hasRole) {
+            ResponseHelper.handleForbidden(req, resp, isApi);
             return false;
         }
 

@@ -17,7 +17,14 @@ public class FrontControllerListener implements ServletContextListener {
         Object springContext = ctx.getAttribute(SPRING_ROOT);
         ctx.setAttribute("springContext", springContext);
 
-        // Nom de l'attribut user dans la session (Sprint 10)
+        // Nom de l'attribut rôle dans la session
+        String roleAttr = ctx.getInitParameter("roleSessionAttribute");
+        if (roleAttr == null || roleAttr.isEmpty()) {
+            roleAttr = "role"; // valeur par défaut
+        }
+        ctx.setAttribute("roleSessionAttribute", roleAttr);
+
+        // Nom de l'attribut user (optionnel)
         String userAttr = ctx.getInitParameter("userSessionAttribute");
         if (userAttr == null || userAttr.isEmpty()) {
             userAttr = "user";
@@ -25,6 +32,7 @@ public class FrontControllerListener implements ServletContextListener {
         ctx.setAttribute("userSessionAttribute", userAttr);
 
         System.out.println("FrontControllerListener OK");
+        System.out.println("roleSessionAttribute = " + roleAttr);
         System.out.println("userSessionAttribute = " + userAttr);
     }
 
